@@ -9,17 +9,26 @@ using namespace std;
 
 // randomly calculates negative-exponenetially-distributed-time
 double nedt(double rate);
-double pareto(double rate);
+
+
+enum eventtype {
+		arrival = 0, departure = 1, syncEvent = 2, timeout = 3
+	};
 
 class Event {
 	double eventTime;
-	bool isArrival; // type 0 
+	bool isArrival; // type 0
+	// enum {
+	// 	arrival = 0, departure = 1, syncEvent = 2, timeout = 3
+	// } eventtype;
+	eventtype eventType;
 
 public:
-	Event(double etime, bool arrival) {
+	Event(double etime, eventtype eventTyp) {
 		eventTime = etime;
 
-        isArrival = arrival;
+		eventType = eventTyp;
+
 	}
 
 	double getEventTime() {
@@ -89,12 +98,13 @@ public:
 	}
 };
 
-int	main(int argc, char const *argv[])
+int main(int argc, char const *argv[])
 {
-    // should be read in from command line
+	// should be read in from command line
     double lambda;
     double mu;
     double maxbuffer;
+    double sync; 
 
     //std::cout << "lambda: ";
     std::cin >> lambda;
@@ -105,29 +115,32 @@ int	main(int argc, char const *argv[])
     //std::cout << "Buffer Size: ";
     std::cin >> maxbuffer;
 
-    // initialize
+    std::cin >> sync; 
+
+	// variables
     int length = 0;
     int dropNum = 0;
     double sumLength = 0;
     double time = 0;
     double busy = 0;
     double packet = 0;
+    double r = 0; // data-length-frame
 
+    // initalization
+	GEL eventList = GEL();
+	for(int i = 0; i < 10; i++) 
+	{
+		Event event = Event(time + nedt(lambda), arrival); // arrival num 0
+	    eventList.insert(event);
+	}
+	Event firstSyanchrinzationEvent = Event(time + nedt(sync), syncEvent); // synchrinzation enum 2
+	eventList.insert(firstSyanchrinzationEvent);
 
-    Event e = Event(time + pareto(lambda), true);
-    GEL eventList = GEL();
-    eventList.insert(e);
-
-    //cerr << "hello 1" << endl;
-
-    // for 100000 events 
-    // process event
-    // just going by the number given
-
-    for (int i = 0; i < 100000; i++)
+	
+	for (int i = 0; i < 100000; i++)
     {
         // get closest event and update time
-        e = eventList.removeFirst();
+        Event e = eventList.removeFirst();
 
         // sums length by multiplying length by elapsed time
         // since length = 1 could still be considered empty queue
@@ -143,7 +156,7 @@ int	main(int argc, char const *argv[])
         {
             //cerr << "is Arrival, i: " << i << endl;
             // insert new arrival event
-            eventList.insert(Event(time + pareto(lambda), true));
+            eventList.insert(Event(time + nedt(lambda), arrival)); // arrival
 
             //cerr << "length: " << length << endl;
 
@@ -154,7 +167,7 @@ int	main(int argc, char const *argv[])
                 packet = nedt(mu);
                 //cerr << "packet: " << packet << endl;
                 busy += packet;
-                eventList.insert(Event(time + packet, false));
+                eventList.insert(Event(time + packet, departure)); // departure
                 length ++;
                 // this assumes maxbuffer is at least one,
                 // which is a good assumption because no buffer 
@@ -186,7 +199,7 @@ int	main(int argc, char const *argv[])
                 //cerr << "packet: " << packet << endl;
 
                 busy += packet;
-                eventList.insert(Event(time + packet, false));
+                eventList.insert(Event(time + packet, departure)); // departure
             }
         }
 
@@ -206,21 +219,14 @@ int	main(int argc, char const *argv[])
     cout << "Number of packets dropped: " << dropNum << endl << endl << endl;
 
 
+	
+
 	return 0;
 }
-
 
 double nedt(double rate)
 {
      double u;
      u = drand48();
      return ((-1/rate)*log(1-u));
-}
-
-double pareto(double rate)
-{
-    double u = drand48();
-    double y = ((-1/rate)*log(1-u));
-    double time = 1*exp(y); // miniumum is one
-    return time;
 }
