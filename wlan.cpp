@@ -12,8 +12,8 @@ double nedt(double rate);
 
 
 enum eventtype {
-		arrival = 0, departure = 1, syncEvent = 2, timeout = 3
-	};
+	arrival = 0, departure = 1, syncEvent = 2, timeout = 3
+};
 
 class Event {
 	double eventTime;
@@ -24,11 +24,10 @@ class Event {
 	eventtype eventType;
 
 public:
-	Event(double etime, eventtype eventTyp) {
+	Event(double etime, eventtype event) {
 		eventTime = etime;
 
-		eventType = eventTyp;
-
+		eventType = event;
 	}
 
 	double getEventTime() {
@@ -130,11 +129,10 @@ int main(int argc, char const *argv[])
 	GEL eventList = GEL();
 	for(int i = 0; i < 10; i++) 
 	{
-		Event event = Event(time + nedt(lambda), arrival); // arrival num 0
-	    eventList.insert(event);
+	    eventList.insert(Event(time + nedt(lambda), arrival));
 	}
-	Event firstSyanchrinzationEvent = Event(time + nedt(sync), syncEvent); // synchrinzation enum 2
-	eventList.insert(firstSyanchrinzationEvent);
+	 // synchrinzation enum 2
+	eventList.insert(Event(time + nedt(sync), syncEvent));
 
 	
 	for (int i = 0; i < 100000; i++)
