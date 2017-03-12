@@ -307,7 +307,7 @@ double randomDestination(int source)
 	int rd = idist(rgen);
 	// if random destination and source are same, recursively call the function!?
 	if (rd == source) {
-		randomDestination(source);
+		randomDestination(source);  // should be rd = no?
 	}
 	return rd;
 }
