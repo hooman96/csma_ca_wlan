@@ -1,5 +1,7 @@
+#include <random> // random host
 #include <iostream>
 #include <list>
+#include <queue>
 #include <cmath>
 #include <math.h>
 #include <algorithm> // max
@@ -9,7 +11,43 @@ using namespace std;
 
 // randomly calculates negative-exponenetially-distributed-time
 double nedt(double rate);
+double generateRandomBackOff(double t);
+double randomDestination(int source);
+double dataLengthFrame(double rate);
+double transmissionTime(double r);
 
+class Packet {
+	int source;
+	int destination;
+	int packet_length;
+	bool isAck; // true acknowledgement, false datapacket
+
+public:
+	Packet(int s, int dest, int packet_bytes, bool ack) {
+		source = s;
+		destination = dest;
+		packet_length = packet_bytes;
+		isAck = ack;
+	}
+};
+
+class Host {
+	double backoff;
+	int hostId;
+	std::queue<Packet> hostsQueue;
+
+public:
+	Host();
+	Host(int id, double randomBackoffValue) {
+		backoff = randomBackoffValue;
+		hostsQueue = std::queue<Packet>();
+		hostId = id;
+	}
+
+	double getBackOff() {
+		return backoff;
+	}
+};
 
 enum eventtype {
 	arrival = 0, departure = 1, syncEvent = 2, timeout = 3
@@ -17,16 +55,12 @@ enum eventtype {
 
 class Event {
 	double eventTime;
-	bool isArrival; // type 0
-	// enum {
-	// 	arrival = 0, departure = 1, syncEvent = 2, timeout = 3
-	// } eventtype;
+	bool isArrival;
 	eventtype eventType;
 
 public:
 	Event(double etime, eventtype event) {
 		eventTime = etime;
-
 		eventType = event;
 	}
 
@@ -34,8 +68,12 @@ public:
 		return eventTime;
 	}
 
-	bool getIsArrival() {
-		return isArrival;
+	// bool getIsArrival() {
+	// 	return arrival;
+	// }
+
+	eventtype getEventType() {
+		return eventType;
 	}
 
 	bool operator==(const Event &rhs) const {
@@ -60,11 +98,8 @@ public:
 	GEL() {
         GlobalEventList = std::list<Event>();
     }
+	
 	void insert(Event event) {
-        //cerr << "begin insert" << endl;
-
-        //cerr << "insert event.isArrival: " << event.getIsArrival() << endl;
-        //cerr << "size = " << GlobalEventList.size() << endl;
 
 		if (GlobalEventList.size() == 0) {
             GlobalEventList.push_front(event);
@@ -80,9 +115,6 @@ public:
 
         GlobalEventList.push_back(event);
 	
-
-        //cerr << "end insert " << endl;
-
 	} // insert sorted by events time
 
 	Event removeFirst() {
@@ -97,24 +129,24 @@ public:
 	}
 };
 
+
 int main(int argc, char const *argv[])
 {
 	// should be read in from command line
     double lambda;
     double mu;
     double maxbuffer;
-    double sync; 
+    double sync;
+    double T;
 
     //std::cout << "lambda: ";
     std::cin >> lambda;
-
     //std::cout << "mu: ";
     std::cin >> mu;
-
     //std::cout << "Buffer Size: ";
     std::cin >> maxbuffer;
-
-    std::cin >> sync; 
+    std::cin >> sync;
+    std::cin >> T;
 
 	// variables
     int length = 0;
@@ -123,15 +155,32 @@ int main(int argc, char const *argv[])
     double time = 0;
     double busy = 0;
     double packet = 0;
+    
     double r = 0; // data-length-frame
-
+    int N = 10;
+    int packetDestination = 0;
+    int packetTransmissionTime = 0;
     // initalization
 	GEL eventList = GEL();
-	for(int i = 0; i < 10; i++) 
+	//Host *hosts = new Host[10];
+
+	Host h = Host(0, 3); // id index of hosts array
+	cout << h.getBackOff();
+
+	std::queue<Packet> hostsQueue = std::queue<Packet>();
+
+	// how to determine destination of packet? choose another random host
+	// 0 index in hosts array
+	packetDestination = randomDestination(1);
+	r = dataLengthFrame(mu);
+	Packet p = Packet(0, packetDestination, r, false);
+	hostsQueue.push(p);
+	packetTransmissionTime = transmissionTime(r);
+
+	for(int i = 0; i < N; i++) 
 	{
 	    eventList.insert(Event(time + nedt(lambda), arrival));
 	}
-	 // synchrinzation enum 2
 	eventList.insert(Event(time + nedt(sync), syncEvent));
 
 	
@@ -150,10 +199,9 @@ int main(int argc, char const *argv[])
         time = e.getEventTime();
 
         // handles Arrival event
-        if (e.getIsArrival())
+        if (e.getEventType() == arrival)
         {
-            //cerr << "is Arrival, i: " << i << endl;
-            // insert new arrival event
+            // generate new arrival event
             eventList.insert(Event(time + nedt(lambda), arrival)); // arrival
 
             //cerr << "length: " << length << endl;
@@ -185,7 +233,7 @@ int main(int argc, char const *argv[])
         }
 
         // handles departure event
-        else 
+        else if (e.getEventType() == departure)
         {
             //cerr << "is departure" << endl;
             length --;
@@ -199,6 +247,20 @@ int main(int argc, char const *argv[])
                 busy += packet;
                 eventList.insert(Event(time + packet, departure)); // departure
             }
+        }
+
+        else if (e.getEventType() == syncEvent) 
+        {
+        	eventList.insert(Event(time + packet, syncEvent)); 
+        }
+        
+        else if (e.getEventType() == timeout) 
+        {
+
+        }
+
+        else {
+        	cerr << "Error : event type is not known!";
         }
 
     }
@@ -217,8 +279,6 @@ int main(int argc, char const *argv[])
     cout << "Number of packets dropped: " << dropNum << endl << endl << endl;
 
 
-	
-
 	return 0;
 }
 
@@ -227,4 +287,40 @@ double nedt(double rate)
      double u;
      u = drand48();
      return ((-1/rate)*log(1-u));
+}
+
+double generateRandomBackOff(double t)
+{
+	// cited http://en.cppreference.com/w/cpp/numeric/random/uniform_real_distribution
+	std::random_device rd;  //Will be used to obtain a seed for the random number engine
+    std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+    std::uniform_real_distribution<> dis(0, 1);
+	return int(t * dis(gen));
+}
+
+double randomDestination(int source)
+{
+	std::random_device rdev;
+	std::mt19937 rgen(rdev());
+	std::uniform_int_distribution<int> idist(0, 9); //(inclusive, inclusive)
+	
+	int rd = idist(rgen);
+	// if random destination and source are same, recursively call the function!?
+	if (rd == source) {
+		randomDestination(source);
+	}
+	return rd;
+}
+
+double dataLengthFrame(double rate) 
+{
+	// how? multiple by 1544 and round integer after calling nedt?
+	// what is this time? for 1544 byte packet, (1544 × 8) / (11 × 106) = 1.12 msec
+
+	return int(1544 * nedt(rate)); // prob wrong [0, 1544]
+}
+
+double transmissionTime(double r)
+{
+	return (r * 8) / (11 * pow(10,6));
 }
