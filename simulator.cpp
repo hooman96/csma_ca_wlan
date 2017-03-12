@@ -118,8 +118,6 @@ int	main(int argc, char const *argv[])
     GEL eventList = GEL();
     eventList.insert(e);
 
-    //cerr << "hello 1" << endl;
-
     // for 100000 events 
     // process event
     // just going by the number given

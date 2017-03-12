@@ -1,4 +1,4 @@
-#include <random> // random host
+#include <random> // random generators
 #include <iostream>
 #include <list>
 #include <queue>
@@ -9,8 +9,7 @@
 using namespace std;
 
 
-// randomly calculates negative-exponenetially-distributed-time
-double nedt(double rate);
+double nedt(double rate); // randomly calculates negative-exponenetially-distributed-time
 double generateRandomBackOff(double t);
 double randomDestination(int source);
 double dataLengthFrame(double rate);
@@ -34,18 +33,22 @@ public:
 class Host {
 	double backoff;
 	int hostId;
-	std::queue<Packet> hostsQueue;
+	std::queue<Packet> hostQueue;
 
 public:
 	Host();
 	Host(int id, double randomBackoffValue) {
 		backoff = randomBackoffValue;
-		hostsQueue = std::queue<Packet>();
+		hostQueue = std::queue<Packet>();
 		hostId = id;
 	}
 
 	double getBackOff() {
 		return backoff;
+	}
+
+	std::queue<Packet> getQueue() {
+		return hostQueue;
 	}
 };
 
@@ -156,25 +159,32 @@ int main(int argc, char const *argv[])
     double busy = 0;
     double packet = 0;
     
+    bool channelStatus = false;
     double r = 0; // data-length-frame
     int N = 10;
     int packetDestination = 0;
     int packetTransmissionTime = 0;
+    
     // initalization
 	GEL eventList = GEL();
-	//Host *hosts = new Host[10];
 
-	Host h = Host(0, 3); // id index of hosts array
+	// Host *hosts = new Host[N];
+	std::vector<Host> hosts;
+	
+	for (int i = 0; i < N; ++i)
+	{
+		hosts.push_back( Host(i, generateRandomBackOff(T)) );
+	}
+
+	Host h = Host(0, generateRandomBackOff(T)); // id index of hosts array
 	cout << h.getBackOff();
 
 	std::queue<Packet> hostsQueue = std::queue<Packet>();
 
 	// how to determine destination of packet? choose another random host
 	// 0 index in hosts array
-	packetDestination = randomDestination(1);
+
 	r = dataLengthFrame(mu);
-	Packet p = Packet(0, packetDestination, r, false);
-	hostsQueue.push(p);
 	packetTransmissionTime = transmissionTime(r);
 
 	for(int i = 0; i < N; i++) 
@@ -203,11 +213,14 @@ int main(int argc, char const *argv[])
         {
             // generate new arrival event
             eventList.insert(Event(time + nedt(lambda), arrival)); // arrival
+        	packetDestination = randomDestination(0);
+        	Packet p = Packet(0, packetDestination, r, false); // data packet for arrivals
 
-            //cerr << "length: " << length << endl;
+            // insert packet to queue
+			hostsQueue.push(p);
 
             // if server is free, schedule a departure event, and update length
-            if (length == 0)
+            if (length == 0 || hostsQueue.size() == 0)
             {
                 //cerr << "hello from length = 0" << endl;
                 packet = nedt(mu);
