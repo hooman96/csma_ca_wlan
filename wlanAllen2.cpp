@@ -5,6 +5,8 @@
 #include <algorithm> // max
 #include <cmath>
 #include <math.h>
+#include <random> // for hooman random stuff
+
 
 
 
@@ -17,20 +19,60 @@ double nedt(double rate)
      return ((-1/rate)*std::log(1-u));
 }
 
+// generate a random backoff value less than or equal to T that is not currently in the backoff list
+int generateRandomBackOff(int T, const int backoff[], int N)
+{
+    // cited http://en.cppreference.com/w/cpp/numeric/random/uniform_real_distribution
+
+    std::random_device rdev;
+    std::mt19937 rgen(rdev());
+    std::uniform_int_distribution<int> idist(1, T); //(inclusive, inclusive)
+    
+    int rd = idist(rgen);
+
+    // make sure the backoff value is not already given to another node
+    // this is for collision avoidance as the TA told us to do, even though 
+    // it doesn't really happen in real life.
+    for (int i = 0; i < N; i++)
+    {
+        if (rd == backoff[i])
+        {
+            return generateRandomBackOff(T, backoff, N);
+        }
+    }
+    return rd;
+}
+
+int randomDestination(int source, int N)
+{
+    // cited http://en.cppreference.com/w/cpp/numeric/random/uniform_real_distribution
+
+    std::random_device rdev;
+    std::mt19937 rgen(rdev());
+    std::uniform_int_distribution<int> idist(0, N - 1); //(inclusive, inclusive)
+    
+    int rd = idist(rgen);
+    // if random destination and source are same, recursively call the function!?
+    if (rd == source) {
+        rd = randomDestination(source, N);
+    }
+    return rd;
+}
 
 enum eventtype {
-    arrival, departure, syncEvent, timeout
+    arrival, departure, sync, timeout
 };
+
 
 class Event {
 protected:
 	double eventTime;
     eventtype type;
-    int source;
-    int dest;
+
 
 public:
-	Event(double etime, eventtype type): eventTime(etime), type(type) {}
+	Event(eventtype type, double etime): type(type), eventTime(etime) {}
+    virtual ~Event(){}
 
 	double getEventTime() {
 		return eventTime;
@@ -40,7 +82,67 @@ public:
     {
         return type;
     }
+
+    virtual void processEvent() = 0; // pure virtual function
+
 };
+
+class Arrival: public Event {
+    static double lambda;
+
+    int host;
+
+public:
+    Arrival(double stime, int h): Event(arrival, stime + nedt(lambda)), host(h) {}
+
+    static void setLambda(double l)
+    {
+        lambda = l;
+    }
+
+    int getHost()
+    {
+        return host;
+    }
+    void processEvent()
+    {
+
+    }
+};
+
+double Arrival::lambda = 0;
+
+class Departure: public Event {
+public:
+    Departure(): Event(departure, 0) {}
+
+    void processEvent(){}
+};
+
+class Sync: public Event {
+
+    static double SYNC;
+
+public:
+    Sync(double stime): Event(sync, stime + SYNC) {}
+
+    static void setSYNC(double s)
+    {
+        SYNC = s;
+    }
+
+    void processEvent(){}
+};
+
+double Sync::SYNC = 0;
+
+class Timeout: public Event{
+public:
+    Timeout(): Event(timeout, 0) {}
+
+    void processEvent(){}
+};
+
 
 
 class GEL { // Global Event List
@@ -81,39 +183,76 @@ public:
 
 // not sure i need all this stuff yet
 class Packet {
-    int source;
     int destination;
-    int packet_length;
     bool isAck; // true acknowledgement, false datapacket
 
 public:
-    Packet(int s, int dest, int packet_bytes, bool ack) {
-        source = s;
-        destination = dest;
-        packet_length = packet_bytes;
-        isAck = ack;
-    }
+    Packet(int dest, bool ack): destination(dest), isAck(ack){}
 };
 
-class Host {
-    int backoff; // doing it in syc tics versus real time because easier for conflict avoidance
-    int hostId;  // position in hosts array, maybe don't need this, but might if put create packets and stuff
+class Host { 
+    static int NumHosts; // need to know this in order to create random destination
+    static int T;        // maximum backoff given no retransmissions
+    // static array so we can implement collision avoidance
+    static int* backoff; // doing it in syc tics versus real time because easier for conflict avoidance
+    // backoff < 0 means nothing in queue (nothing to transmit)
+    // backoff > 0 means waiting to transmit
+    // backoff == 0 means either transmitting or waiting for ack
+
+    int hostID;  // position in hosts array, maybe don't need this, but might if put create packets and stuff
     int tmNum; // transmission number, max tmNum = 1 + maxRTM.  Max backoff = tmNum * T
-    std::queue<Packet> hostsQueue;
+    std::queue<Packet*> packetQueue; // i think its initialized implicitly
 
 public:
-    Host(){};
-    Host(int id, double randomBackoffValue) {
-        backoff = randomBackoffValue;
-        hostsQueue = std::queue<Packet>();
-        hostId = id;
-        tmNum = 1;
+    // initially set backoff to (-1) to show that nothing in queue
+    Host(int id): hostID(id), tmNum(0){
+        backoff[id] = -1;
     }
 
-    double getBackOff() {
-        return backoff;
+    // initialize static variables
+    static void initHosts(int N, int t)
+    {
+        NumHosts = N;
+        backoff = new int[N];
+        T = t;
     }
+
+    void enqueueDataPacket()
+    {
+        packetQueue.push(new Packet(randomDestination(hostID, NumHosts), false));
+        // if nothing ready to transmit, as denoted by a negative backoff value
+        // then need to set a new backoff value for this packet
+        if (backoff < 0)
+            backoff[hostID] = generateRandomBackOff(T, backoff, NumHosts);
+    }
+    void enqueueAckPacket(int dest)
+    {
+        packetQueue.push(new Packet(dest, true));
+        // if nothing ready to transmit, as denoted by a negative backoff value
+        // then need to set a new backoff value for this packet
+        if (backoff < 0)
+            backoff[hostID] = generateRandomBackOff(T, backoff, NumHosts);
+
+    }
+
+    // decrements backoff value if it is larger than zero
+    // returns true if this act makes the value 0, and thus the Host is ready to transmit
+    bool decrementBackoff()
+    {
+        if (backoff[hostID] > 0)
+        {
+            --(backoff[hostID]);
+            if(backoff[hostID] == 0)
+                return true;
+        }
+        return false;
+    }
+    
 };
+
+int* Host::backoff = NULL;
+int Host::NumHosts = 0;
+int Host::T = 0;
 
 
 
@@ -243,22 +382,127 @@ int	main(int argc, char const *argv[])
 
     hosts = new Host*[N];           // create an array to hold all Hosts
     eventList = new GEL();          // create a list of events
+    Event* e;                       // holds the event currently being manipulated
+
+    // initialize static variables of events
+    Arrival::setLambda(lambda);
+    Sync::setSYNC(SYNC);
+    Host::initHosts(N, T);
 
 
     // initialize each host and create its initial arrival event
     for (int i = 0; i < N; i++)
     {
-        hosts[i] = new Host();
-        eventList->insert(new Arrival(time + nedt(lambda), i));
+        hosts[i] = new Host(i);
+        eventList->insert(new Arrival(time, i));
 
     }
 
-    eventList->insert(new Sync(time + SYNC));  // create the first sync event
+    eventList->insert(new Sync(time));  // create the first sync event
 
 
     for(int i = 0; i < eventsSimulated; i++)
     {
-        Event* e = eventList->removeFirst();
+        // pop event to handle
+        e = eventList->removeFirst();
+
+        // update time
+        time = e->getEventTime();
+
+        if (e->getType() == arrival)
+        {
+            // cast to arrival pointer
+            Arrival *a = static_cast<Arrival*>(e);
+
+            // check if cast actually worked
+            if (a)
+            {
+                // need to create a new arrival event for the previous arrival event's host
+                eventList->insert(new Arrival(time, a->getHost()));
+
+                // following line testing behaviour of arrival event
+                //std::cout << "process arrival event for host: " << a->getHost() << " at time: " << a->getEventTime() << std::endl;
+
+                // now need to put packet in queue of host.
+                // will generate length of packet on demand when create a departure event
+                // but need to indicate that it is not a ack packet
+                hosts[a->getHost()]->enqueueDataPacket();
+
+            }
+            else // not actually an arrival pointer
+            {   
+                std::cerr << "error: process event of arrival type that wasn't actually an arrival event" << std::endl;
+            }
+        }
+
+        
+        else if (e->getType() == departure)
+        {
+            // cast to departure pointer
+            Departure *d = static_cast<Departure*>(e);
+
+            // check if cast actually worked
+            if (d)
+            {
+
+
+            }
+            else // not actually a departure pointer
+            {   
+                std::cerr << "error: process event of departure type that wasn't actually a departure event" << std::endl;
+            }
+
+        }
+        else if (e->getType() == sync)
+        {
+            // cast to Sync pointer
+            Sync *s = static_cast<Sync*>(e);
+
+            // check if cast actually worked
+            if (s)
+            {
+                // need to create a new Sync event
+                eventList->insert(new Sync(time));
+
+                //std::cout << "process sync event at time: " << s->getEventTime() << std::endl;
+
+                // if channel is free, go through all hosts and decrement backoff.
+                // if backoff reaches zero, set channel to busy and create departure event
+                // also continue to decrement the rest of the backoffs to help with collision avoidance
+                if (channelBusy == false)
+                {
+                    for (int i = 0; i < N; i++)
+                    {
+                        hosts[i]->decrementBackoff();
+                    }
+                }
+
+
+            }
+            else // not actually a sync pointer
+            {   
+                std::cerr << "error: process event of sync type that wasn't actually a sync event" << std::endl;
+            }
+
+        }
+        else if (e->getType() == timeout)
+        {
+            // cast to arrival pointer
+            Timeout *t = static_cast<Timeout*>(e);
+
+            // check if actually worked
+            if (t)
+            {
+
+            }
+            else // not actually a timeout pointer
+            {   
+                std::cerr << "error: process event of timeout type that wasn't actually a timeout event" << std::endl;
+            }
+        }
+
+        // free memory of processed event
+        delete e;
 
 
     }
