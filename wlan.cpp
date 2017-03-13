@@ -296,8 +296,12 @@ int main(int argc, char const *argv[])
         	sendingTime = time + transmissionTime(r) + difs;
 
         	if (timeoutTime < acknowledgementTime) {
-        		// failed transmission resend the packet
-                cout << acknowledgementTime;
+        		// failed transmission : resend the packet, increase transmission count n
+                n++;
+                hosts[e.getHost()].backoff = generateRandomBackOff(T * n);
+
+                eventList.insert(Event(time + timeout, departure, e.getHost())); // departure for retransmission
+
         	}
         }
 
@@ -357,9 +361,7 @@ double randomDestination(int source)
 double dataLengthFrame(double rate) 
 {
 	// how? multiple by 1544 and round integer after calling nedt?
-	// what is this time? for 1544 byte packet, (1544 × 8) / (11 × 106) = 1.12 msec
-
-	return int(1544 * nedt(rate)); // prob wrong [0, 1544]
+	return int(1544 * generateRandomBackOff(rate)); // prob wrong [0, 1544] = 1544 * [0, 1]
 }
 
 double transmissionTime(double r)
