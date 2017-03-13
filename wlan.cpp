@@ -186,9 +186,9 @@ int main(int argc, char const *argv[])
 
 	for(int i = 0; i < N; i++) 
 	{
-	    eventList.insert(Event(time + nedt(lambda), arrival), i);
+	    eventList.insert(Event(time + nedt(lambda), arrival, i));
 	}
-	eventList.insert(Event(time + nedt(sync), syncEvent), -1); // sync events do not have host, code -1
+	eventList.insert(Event(time + nedt(sync), syncEvent, -1)); // sync events do not have host, code -1
 	
 	for (int i = 0; i < 100000; i++)
     {
@@ -208,7 +208,7 @@ int main(int argc, char const *argv[])
         if (e.getEventType() == arrival)
         {
             // generate new arrival event
-            eventList.insert(Event(time + nedt(lambda), arrival), e.getHost()); // arrival
+            eventList.insert(Event(time + nedt(lambda), arrival, e.getHost())); // arrival
 
 			r = dataLengthFrame(mu);
 
@@ -225,7 +225,7 @@ int main(int argc, char const *argv[])
                 packet = nedt(mu);
                 //cerr << "packet: " << packet << endl;
                 busy += packet;
-                eventList.insert(Event(time + packet, departure)); // departure
+                eventList.insert(Event(time + packet, departure, e.getHost())); // departure
                 length ++;
                 // this assumes maxbuffer is at least one,
                 // which is a good assumption because no buffer 
@@ -263,7 +263,7 @@ int main(int argc, char const *argv[])
                 //cerr << "packet: " << packet << endl;
 
                 busy += packet;
-                eventList.insert(Event(time + packet, departure)); // departure
+                eventList.insert(Event(time + packet, departure, e.getHost())); // departure
             }
         }
 
@@ -277,16 +277,16 @@ int main(int argc, char const *argv[])
         		hosts[e.getHost()].backoff--; // correct?
 
         		if (hosts[e.getHost()].getBackOff() == 0) { // create departure event
-        			eventList.insert(Event(time + packet, departure)); // departure
+        			eventList.insert(Event(time + packet, departure, e.getHost())); // departure
         			channelBusy = true;
 
-        			eventList.insert(Event(time + packet, timeout)); // timeout event while transmiting
+        			eventList.insert(Event(time + packet, timeout, e.getHost())); // timeout event while transmiting
 
         			hosts[e.getHost()].backoff = generateRandomBackOff(T); // generate new random backoff value
         		}
         	}
 
-        	eventList.insert(Event(time + packet, syncEvent)); // next synchrinization event
+        	eventList.insert(Event(time + packet, syncEvent, e.getHost())); // next synchrinization event
         	sync += (.01 * pow(10, 6));
         }
         
@@ -297,6 +297,7 @@ int main(int argc, char const *argv[])
 
         	if (timeoutTime < acknowledgementTime) {
         		// failed transmission resend the packet
+                cout << acknowledgementTime;
         	}
         }
 
