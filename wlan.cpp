@@ -31,11 +31,11 @@ public:
 };
 
 class Host {
+public:
 	double backoff;
 	int hostId;
 	std::queue<Packet> hostQueue;
 
-public:
 	Host();
 	Host(int id, double randomBackoffValue) {
 		backoff = randomBackoffValue;
@@ -45,10 +45,6 @@ public:
 
 	double getBackOff() {
 		return backoff;
-	}
-
-	std::queue<Packet> getQueue() {
-		return hostQueue;
 	}
 };
 
@@ -60,15 +56,21 @@ class Event {
 	double eventTime;
 	bool isArrival;
 	eventtype eventType;
+	int eventHostId;
 
 public:
-	Event(double etime, eventtype event) {
+	Event(double etime, eventtype event, int hostId) {
 		eventTime = etime;
 		eventType = event;
+		eventHostId = hostId;
 	}
 
 	double getEventTime() {
 		return eventTime;
+	}
+
+	int getHost() {
+		return eventHostId;
 	}
 
 	// bool getIsArrival() {
@@ -122,11 +124,8 @@ public:
 
 	Event removeFirst() {
 
-        //cerr << "begin removeFirst" << endl;
 		Event firstElement = GlobalEventList.front();
 		GlobalEventList.pop_front();
-
-        //cerr << "end removeFirst" << endl;
 
 		return firstElement;
 	}
@@ -141,6 +140,8 @@ int main(int argc, char const *argv[])
     double maxbuffer;
     double sync;
     double T;
+    double timeoutTime;
+    // double timeout; // 5 10 15
 
     //std::cout << "lambda: ";
     std::cin >> lambda;
@@ -150,6 +151,7 @@ int main(int argc, char const *argv[])
     std::cin >> maxbuffer;
     std::cin >> sync;
     std::cin >> T;
+    std::cin >> timeoutTime;
 
 	// variables
     int length = 0;
@@ -159,12 +161,18 @@ int main(int argc, char const *argv[])
     double busy = 0;
     double packet = 0;
     
-    bool channelStatus = false;
+    bool channelBusy = false; // false free, busy true
     double r = 0; // data-length-frame
     int N = 10;
     int packetDestination = 0;
     int packetTransmissionTime = 0;
-    
+
+	int acknowledgementTime = 0;
+	int sendingTime = 0;
+	int sifs = .05;
+	int difs = .1;
+
+
     // initalization
 	GEL eventList = GEL();
 
@@ -176,23 +184,11 @@ int main(int argc, char const *argv[])
 		hosts.push_back( Host(i, generateRandomBackOff(T)) );
 	}
 
-	Host h = Host(0, generateRandomBackOff(T)); // id index of hosts array
-	cout << h.getBackOff();
-
-	std::queue<Packet> hostsQueue = std::queue<Packet>();
-
-	// how to determine destination of packet? choose another random host
-	// 0 index in hosts array
-
-	r = dataLengthFrame(mu);
-	packetTransmissionTime = transmissionTime(r);
-
 	for(int i = 0; i < N; i++) 
 	{
-	    eventList.insert(Event(time + nedt(lambda), arrival));
+	    eventList.insert(Event(time + nedt(lambda), arrival), i);
 	}
-	eventList.insert(Event(time + nedt(sync), syncEvent));
-
+	eventList.insert(Event(time + nedt(sync), syncEvent), -1); // sync events do not have host, code -1
 	
 	for (int i = 0; i < 100000; i++)
     {
@@ -212,15 +208,18 @@ int main(int argc, char const *argv[])
         if (e.getEventType() == arrival)
         {
             // generate new arrival event
-            eventList.insert(Event(time + nedt(lambda), arrival)); // arrival
-        	packetDestination = randomDestination(0);
-        	Packet p = Packet(0, packetDestination, r, false); // data packet for arrivals
+            eventList.insert(Event(time + nedt(lambda), arrival), e.getHost()); // arrival
+
+			r = dataLengthFrame(mu);
+
+        	packetDestination = randomDestination(e.getHost());
+        	Packet p = Packet(e.getHost(), packetDestination, r, false); // data packet for arrivals
 
             // insert packet to queue
-			hostsQueue.push(p);
+			hosts[e.getHost()].hostQueue.push(p);
 
             // if server is free, schedule a departure event, and update length
-            if (length == 0 || hostsQueue.size() == 0)
+            if (length == 0 || hosts[0].hostQueue.size() == 0)
             {
                 //cerr << "hello from length = 0" << endl;
                 packet = nedt(mu);
@@ -248,7 +247,13 @@ int main(int argc, char const *argv[])
         // handles departure event
         else if (e.getEventType() == departure)
         {
-            //cerr << "is departure" << endl;
+        	channelBusy = false; // free the channel 
+
+        	packetDestination = randomDestination(e.getHost());
+        	Packet ap = Packet(e.getHost(), packetDestination, 64, true); // acknowledgement packet for depatures
+
+        	hosts[e.getHost()].hostQueue.push(ap);
+
             length --;
 
             // if packet still in queue, create a departure event
@@ -264,12 +269,35 @@ int main(int argc, char const *argv[])
 
         else if (e.getEventType() == syncEvent) 
         {
-        	eventList.insert(Event(time + packet, syncEvent)); 
+        	// freeze counter 
+        	if (channelBusy == true) {
+        		continue;
+        	}
+        	else { // free channel
+        		hosts[e.getHost()].backoff--; // correct?
+
+        		if (hosts[e.getHost()].getBackOff() == 0) { // create departure event
+        			eventList.insert(Event(time + packet, departure)); // departure
+        			channelBusy = true;
+
+        			eventList.insert(Event(time + packet, timeout)); // timeout event while transmiting
+
+        			hosts[e.getHost()].backoff = generateRandomBackOff(T); // generate new random backoff value
+        		}
+        	}
+
+        	eventList.insert(Event(time + packet, syncEvent)); // next synchrinization event
+        	sync += (.01 * pow(10, 6));
         }
         
         else if (e.getEventType() == timeout) 
         {
+        	acknowledgementTime = time + transmissionTime(64) + sifs;
+        	sendingTime = time + transmissionTime(r) + difs;
 
+        	if (timeoutTime < acknowledgementTime) {
+        		// failed transmission resend the packet
+        	}
         }
 
         else {
@@ -320,7 +348,7 @@ double randomDestination(int source)
 	int rd = idist(rgen);
 	// if random destination and source are same, recursively call the function!?
 	if (rd == source) {
-		randomDestination(source);
+		rd = randomDestination(source);
 	}
 	return rd;
 }
