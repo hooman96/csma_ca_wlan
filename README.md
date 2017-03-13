@@ -44,5 +44,5 @@ There are four types of events and their processing steps:
   
 ## Authors
 
-* **Hooman Mo** - *Initial work* - [PurpleBooth](https://github.com/hooman96)
-* **Allen Speers** [PurpleBooth](https://github.com/atspeers)
+* [**Hooman Mo**](https://github.com/hooman96)
+* [**Allen Speers**](https://github.com/atspeers)
