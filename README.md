@@ -42,4 +42,7 @@ There are four types of events and their processing steps:
   * Retransimission of the packet (failed transmiting), increase the transmission counter, n
   * set a new backoff in range of 0 and n * T
   
-  
+## Authors
+
+* **Hooman Mo** - *Initial work* - [PurpleBooth](https://github.com/hooman96)
+* **Allen Speers** [PurpleBooth](https://github.com/atspeers)
