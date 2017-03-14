@@ -384,6 +384,7 @@ public:
         // if correct ack, can pop packet from start of queue
         if (AckID == packetID)
         {
+            //std::cerr << "receive correct ack, Host: " << hostID << ", AckID: " << AckID << std::endl;
             packetQueue.pop(); // pop packet from queue
             packetID++; // new packet to send, so increment packetID
             tmNum = 0; // need to reset TmNum because new packet to transmit.
@@ -474,8 +475,9 @@ public:
         // else need to create packet and increment tmNum
         else
         {
+            depart = new Departure(stime, hostID, p.destination, packetID, false);
             tmNum ++;
-            depart = new Departure(stime, hostID, p.destination, hostID, false);
+
 
         }
 
@@ -819,6 +821,7 @@ int	main(int argc, char const *argv[])
     std::cout << "Average Network Delay (per instructions): " << delay / (transmitted/time) << " s^2/B" << std::endl; // This is what doesn't make sense
 
     std::cout << "Packets Dropped: " << drop << std::endl;
+    std::cout << "Packets Sent: " << packets << std::endl;
 
 
 
