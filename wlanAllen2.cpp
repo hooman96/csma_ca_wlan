@@ -26,12 +26,15 @@ double nedt(double rate)
      return ((-1/rate)*std::log(1-u));
 }
 
-int dataLengthFrame(double rate) 
+double dataLengthFrame(double rate) 
 {
-    // how? multiple by 1544 and round integer after calling nedt?
-    // what is this time? for 1544 byte packet, (1544 × 8) / (11 × 106) = 1.12 msec
+    // http://en.cppreference.com/w/cpp/numeric/random/exponential_distribution
+    std::random_device rd;
+    std::mt19937 gen(rd());
 
-    return int(maxPktSize * nedt(rate)); // prob wrong [0, 1544]
+    std::exponential_distribution<> d(1); // generate nedt between 0 and 1
+
+    return int(1544 * d(gen));
 }
 
 double transmissionTime(int bytes)
@@ -328,7 +331,7 @@ public:
         T = t;
     }
 
-    int getDelay()
+    double getDelay()
     {
         return delay;
     }
@@ -779,7 +782,7 @@ int	main(int argc, char const *argv[])
 
     for (int i = 0; i < N; i++)
     {
-        delay += hosts[N]->getDelay();
+        delay += hosts[i]->getDelay();
     }
 
     double throughput = transmitted / time;
