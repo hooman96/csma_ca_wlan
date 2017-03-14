@@ -166,6 +166,7 @@ int main(int argc, char const *argv[])
     int N = 10;
     int packetDestination = 0;
     int packetTransmissionTime = 0;
+    int n = 0;
 
 	int acknowledgementTime = 0;
 	int sendingTime = 0;
@@ -287,21 +288,21 @@ int main(int argc, char const *argv[])
         	}
 
         	eventList.insert(Event(time + packet, syncEvent, e.getHost())); // next synchrinization event
-        	sync += (.01 * pow(10, 6));
+        	sync += (.01 * pow(10, 3)); // msec to sec
         }
         
         else if (e.getEventType() == timeout) 
         {
+            eventList.insert(Event(time + timeout, departure, e.getHost())); // initial departure 
+
+
         	acknowledgementTime = time + transmissionTime(64) + sifs;
         	sendingTime = time + transmissionTime(r) + difs;
 
         	if (timeoutTime < acknowledgementTime) {
         		// failed transmission : resend the packet, increase transmission count n
                 n++;
-                hosts[e.getHost()].backoff = generateRandomBackOff(T * n);
-
-                eventList.insert(Event(time + timeout, departure, e.getHost())); // departure for retransmission
-
+                hosts[e.getHost()].backoff = generateRandomBackOff(T * n);                
         	}
         }
 
@@ -360,8 +361,13 @@ double randomDestination(int source)
 
 double dataLengthFrame(double rate) 
 {
-	// how? multiple by 1544 and round integer after calling nedt?
-	return int(1544 * generateRandomBackOff(rate)); // prob wrong [0, 1544] = 1544 * [0, 1]
+    // http://en.cppreference.com/w/cpp/numeric/random/exponential_distribution
+    std::random_device rd;
+    std::mt19937 gen(rd());
+
+    std::exponential_distribution<> d(1); // generate nedt between 0 and 1
+
+    return int(1544 * d(gen));
 }
 
 double transmissionTime(double r)

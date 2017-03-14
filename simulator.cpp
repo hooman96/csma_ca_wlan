@@ -118,6 +118,8 @@ int	main(int argc, char const *argv[])
     GEL eventList = GEL();
     eventList.insert(e);
 
+    //cerr << "hello 1" << endl;
+
     // for 100000 events 
     // process event
     // just going by the number given
@@ -154,7 +156,7 @@ int	main(int argc, char const *argv[])
                 busy += packet;
                 eventList.insert(Event(time + packet, false));
                 length ++;
-                // this assumes maxbuffer is at least one,
+                // this assumes maxbuffer is at least one, 
                 // which is a good assumption because no buffer 
                 // would have max buffer equal to 1
             }
