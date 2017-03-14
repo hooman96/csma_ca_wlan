@@ -166,12 +166,12 @@ int main(int argc, char const *argv[])
     int N = 10;
     int packetDestination = 0;
     int packetTransmissionTime = 0;
-    int n = 0;
+    int n = 0; // transmission count
 
 	int acknowledgementTime = 0;
 	int sendingTime = 0;
-	int sifs = .05;
-	int difs = .1;
+	int sifs = .05 * pow(10, 3);
+	int difs = .1 * pow(10, 3);
 
 
     // initalization
@@ -270,19 +270,16 @@ int main(int argc, char const *argv[])
 
         else if (e.getEventType() == syncEvent) 
         {
-        	// freeze counter 
-        	if (channelBusy == true) {
-        		continue;
-        	}
-        	else { // free channel
-        		hosts[e.getHost()].backoff--; // correct?
+        	// decreament counter for free channel
+        	if (channelBusy == false) {
+
+        		hosts[e.getHost()].backoff--;
 
         		if (hosts[e.getHost()].getBackOff() == 0) { // create departure event
-        			eventList.insert(Event(time + packet, departure, e.getHost())); // departure
+        			eventList.insert(Event(time + packet, departure, e.getHost())); // departure event
         			channelBusy = true;
 
         			eventList.insert(Event(time + packet, timeout, e.getHost())); // timeout event while transmiting
-
         			hosts[e.getHost()].backoff = generateRandomBackOff(T); // generate new random backoff value
         		}
         	}
@@ -296,14 +293,13 @@ int main(int argc, char const *argv[])
             eventList.insert(Event(time + timeout, departure, e.getHost())); // initial departure 
 
 
-        	acknowledgementTime = time + transmissionTime(64) + sifs;
-        	sendingTime = time + transmissionTime(r) + difs;
+            acknowledgementTime = e.getEventTime() + transmissionTime(64) + sifs;
+        	// sendingTime = time + transmissionTime(r) + difs;
 
-        	if (timeoutTime < acknowledgementTime) {
-        		// failed transmission : resend the packet, increase transmission count n
-                n++;
-                hosts[e.getHost()].backoff = generateRandomBackOff(T * n);                
-        	}
+            
+    		// failed transmission : resend the packet, increase transmission count n
+            n++;
+            hosts[e.getHost()].backoff = generateRandomBackOff(T * n);                
         }
 
         else {
