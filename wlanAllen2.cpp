@@ -34,7 +34,7 @@ double dataLengthFrame(double rate)
 
     std::exponential_distribution<> d(1); // generate nedt between 0 and 1
 
-    return int(1544 * d(gen));
+    return int(maxPktSize * d(gen));
 }
 
 double transmissionTime(int bytes)
