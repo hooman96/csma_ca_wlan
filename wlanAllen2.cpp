@@ -319,7 +319,7 @@ class Host {
 
 public:
     // initially set backoff to (-1) to show that nothing in queue
-    Host(int id): packetID(0), hostID(id), tmNum(0), retransmitTime(0), delay(0){
+    Host(int id): packetID(0), droppedPackets(0),  hostID(id), tmNum(0), retransmitTime(0), delay(0){
         backoff[id] = -1;
     }
 
@@ -336,6 +336,11 @@ public:
         return delay;
     }
 
+    int getDropedPackets()
+    {
+        return droppedPackets;
+    }
+
     void enqueueDataPacket(double stime)
     {
         packetQueue.push(Packet(stime, randomDestination(hostID, NumHosts), false));
@@ -343,7 +348,7 @@ public:
         // then need to set a new backoff value for this packet.
         // in real life I don't think the first packet waits for a backoff,
         // but the TAs told us to do it this way.
-        if (backoff < 0)
+        if (backoff[hostID] < 0)
             backoff[hostID] = generateRandomBackOff(T, backoff, NumHosts);
     }
     void enqueueAckPacket(double stime, int dest, int ackID)
@@ -355,7 +360,7 @@ public:
         packetQueue.push(Packet(stime, dest, true, ackID));
         // if nothing ready to transmit, as denoted by a negative backoff value
         // then need to set a new backoff value for this packet
-        if (backoff < 0)
+        if (backoff[hostID] < 0)
             backoff[hostID] = generateRandomBackOff(T, backoff, NumHosts);
 
     }
@@ -438,18 +443,26 @@ public:
     Departure* createDeparture(double stime)
     {
         // i lied, error checking
-        if (backoff != 0)
+        if (backoff[hostID] != 0)
             std::cerr << "Host creating Departure event when backoff != 0" << std::endl;
         // the other one should cause runtime issues if bug, so won't check for it
         // no that's stupid
         if (packetQueue.empty())
+        {
             std::cerr << "Host creating Departure event when queue empty" << std::endl;
+
+            return NULL;
+        }
+
 
 
         // get packet info
         Packet p = packetQueue.front();
 
         Departure* depart; // holds return value
+
+
+        //std::cerr << "creating departure with destination: " << p.destination << std::endl;
 
         // if an ack packet, create ack event
         // since we don't need to wait for ack, can immediatley pretend we got one
@@ -510,6 +523,7 @@ int	main(int argc, char const *argv[])
     double time = 0;        // time simulated since start of simulation in seconds
     double transmitted = 0; // number of bytes successfully transmitted (will include ack bytes)
     double delay = 0;       // queue + transmission delay in seconds
+    int packets = 0;
     bool channelBusy = false; // true if channel is busy, false otherwise
 
 //  containers
@@ -678,6 +692,7 @@ int	main(int argc, char const *argv[])
             {   
                 // keep track of bytes transmitted
                 transmitted += d->getSize();
+                packets ++;
 
 
                 // if an ack departure, need to notify receiving host
@@ -739,11 +754,19 @@ int	main(int argc, char const *argv[])
                     if (hostToProcess >= 0)
                     {
                         // have the host create a departure event
-                        eventList->insert(hosts[hostToProcess]->createDeparture(time));
-                        // create a timeout event tied to the host
-                        eventList->insert(hosts[hostToProcess]->createTimeout(time));
-                        // set channel to busy
-                        channelBusy = true;
+                        Departure* departHelp = (hosts[hostToProcess]->createDeparture(time));
+                        if (departHelp)
+                        {
+                            eventList->insert(departHelp);
+                            // create a timeout event tied to the host, but only if not ack
+                            if (!departHelp->isAck())
+                            {
+                                eventList->insert(hosts[hostToProcess]->createTimeout(time));
+
+                            }
+                            // set channel to busy
+                            channelBusy = true;
+                        }
                     }
                 }
 
@@ -781,15 +804,21 @@ int	main(int argc, char const *argv[])
 
 
 
+    int drop = 0;
+
     for (int i = 0; i < N; i++)
     {
         delay += hosts[i]->getDelay();
+        drop += hosts[i]->getDropedPackets();
     }
 
-    double throughput = transmitted / time;
 
-    std::cout << "Throughput: " << throughput << "Bps" << std::endl;
-    std::cout << "Average Network Delay: " << delay / throughput << std::endl; // i don't get the dementional analysis on this one
+    std::cout << "Throughput: " << transmitted / time << " Bps" << std::endl;
+    std::cout << "Average Network Delay: " << delay / transmitted << " s/B" << std::endl; // I changed this to make sense
+    std::cout << "Average Network Delay: " << delay / packets << " s/packet" << std::endl; // I changed this to make sense
+    std::cout << "Average Network Delay (per instructions): " << delay / (transmitted/time) << " s^2/B" << std::endl; // This is what doesn't make sense
+
+    std::cout << "Packets Dropped: " << drop << std::endl;
 
 
 
