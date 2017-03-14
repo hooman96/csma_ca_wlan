@@ -734,15 +734,16 @@ int	main(int argc, char const *argv[])
                         }
 
                         // if a host was selected to process, need to process it
-                        if (hostToProcess >= 0)
-                        {
-                            // have the host create a departure event
-                            eventList->insert(hosts[hostToProcess]->createDeparture(time));
-                            // create a timeout event tied to the host
-                            eventList->insert(hosts[hostToProcess]->createTimeout(time));
-                            // set channel to busy
-                            channelBusy = true;
-                        }
+
+                    }
+                    if (hostToProcess >= 0)
+                    {
+                        // have the host create a departure event
+                        eventList->insert(hosts[hostToProcess]->createDeparture(time));
+                        // create a timeout event tied to the host
+                        eventList->insert(hosts[hostToProcess]->createTimeout(time));
+                        // set channel to busy
+                        channelBusy = true;
                     }
                 }
 
