@@ -8,7 +8,14 @@
 #include <random> // for hooman random stuff
 
 
-
+//  these should be constant for our project
+    const double maxRTM = 3;              // maximum number of retransmissions
+    const int maxPktSize = 1544;          // maximum size of a packet in bytes
+    const int ackPktSize = 64;            // acknowledgement packet size in bytes
+    const double channelCapacity = 11000000.0;    // 11 Mbps (bits)
+    const double SIFS = 0.00005;                  // 0.05 msec, delay before ack
+    const double DIFS = 0.0001;                   // 0.1 msec, delay before send
+    const double SYNC = 0.00001;                  // 0.01 msec
 
 
 // randomly calculates negative-exponenetially-distributed-time
@@ -17,6 +24,19 @@ double nedt(double rate)
      double u;
      u = drand48();
      return ((-1/rate)*std::log(1-u));
+}
+
+int dataLengthFrame(double rate) 
+{
+    // how? multiple by 1544 and round integer after calling nedt?
+    // what is this time? for 1544 byte packet, (1544 × 8) / (11 × 106) = 1.12 msec
+
+    return int(maxPktSize * nedt(rate)); // prob wrong [0, 1544]
+}
+
+double transmissionTime(int bytes)
+{
+    return (bytes * 8) / (channelCapacity);
 }
 
 // generate a random backoff value less than or equal to T that is not currently in the backoff list
@@ -71,7 +91,7 @@ protected:
 
 
 public:
-	Event(eventtype type, double etime): type(type), eventTime(etime) {}
+	Event(eventtype type, double etime): eventTime(etime), type(type) {}
     virtual ~Event(){}
 
 	double getEventTime() {
@@ -82,8 +102,6 @@ public:
     {
         return type;
     }
-
-    virtual void processEvent() = 0; // pure virtual function
 
 };
 
@@ -104,20 +122,77 @@ public:
     {
         return host;
     }
-    void processEvent()
-    {
 
-    }
 };
 
 double Arrival::lambda = 0;
 
 class Departure: public Event {
-public:
-    Departure(): Event(departure, 0) {}
 
-    void processEvent(){}
+    // shape of packet size distribution
+    static double mu;
+
+    bool ack;         // denotes if it is an acknowedgement packet
+    int source;         // source host
+    int destination;    // destination host
+    int packetID;       // id of packet, see host class
+    int size;           // paket size in bytes, used to determine throughput
+
+public:
+    Departure(double stime, int s, int d, int id, bool a): Event(departure, stime), ack(a), source(s), destination(d), packetID(id) 
+    {
+        // if ack packet, set the time to be that size
+        // time already current time, so just need to add the new time.
+        if(ack)
+        {
+            // this shouldn't be how it works in real life
+            // we're supposed to scan the channel during sifs, 
+            // then if clear set channel to busy and transmit.  
+            // For this project TA say just add SIFS, which is easier so OK then
+            size = ackPktSize;
+            eventTime += (SIFS + transmissionTime(size));
+        }
+        else
+        {
+            //  same comment as above, except DFIS
+            size = dataLengthFrame(mu);
+            eventTime += (DIFS + transmissionTime(size));
+
+        }
+
+    }
+
+    static void setMu(double m)
+    {
+        mu = m;
+    }
+
+    bool isAck()
+    {
+        return ack;
+    }
+
+    int getSource()
+    {
+        return source;
+    }
+    int getDestination()
+    {
+        return destination;
+    }
+    int getPacketID()
+    {
+        return packetID;
+    }
+    int getSize()
+    {
+        return size;
+    }
+
+
 };
+
+double Departure::mu = 0;
 
 class Sync: public Event {
 
@@ -131,19 +206,38 @@ public:
         SYNC = s;
     }
 
-    void processEvent(){}
 };
 
 double Sync::SYNC = 0;
 
 class Timeout: public Event{
-public:
-    Timeout(): Event(timeout, 0) {}
 
-    void processEvent(){}
+    static double to_time;
+
+    int host;
+    int timeoutID;
+public:
+    Timeout(double stime, int h, int id): Event(timeout, stime + to_time), host(h), timeoutID(id) {}
+
+    static void setTO(double t)
+    {
+        to_time = t;
+    }
+
+
+    int getHost()
+    {
+        return host;
+    }
+
+    int getTimeoutID()
+    {
+        return timeoutID;
+    }
+
 };
 
-
+double Timeout::to_time = 0;
 
 class GEL { // Global Event List
 
@@ -185,9 +279,16 @@ public:
 class Packet {
     int destination;
     bool isAck; // true acknowledgement, false datapacket
+    int  ackID; // used to make sure ack makes sense and stuff
+    double queueTime; // time when packet first queued, used for statistics (Network delay)
+
+
+    friend class Host;
 
 public:
-    Packet(int dest, bool ack): destination(dest), isAck(ack){}
+    Packet(double t, int dest, bool ack, int id = 0): destination(dest), isAck(ack), ackID(id), queueTime(t){}
+
+
 };
 
 class Host { 
@@ -199,13 +300,23 @@ class Host {
     // backoff > 0 means waiting to transmit
     // backoff == 0 means either transmitting or waiting for ack
 
+    int packetID; // the number of the packet sent.  
+    // Not worring about overflow, and even it it does, it should still work correctly.
+    // Used to cordinate acks and timeouts.
+    // If a timeout occurs, there's a chance that there will be acks in the network 
+    // that don't refer to the most recent transmission.
+
+    int droppedPackets; // not necessary for our project, but i think it might be interesting to keep track of
     int hostID;  // position in hosts array, maybe don't need this, but might if put create packets and stuff
     int tmNum; // transmission number, max tmNum = 1 + maxRTM.  Max backoff = tmNum * T
-    std::queue<Packet*> packetQueue; // i think its initialized implicitly
+
+    double retransmitTime; // used to calculate delay when there has been a retransmission
+    double delay;  // total delay, used for statistics.
+    std::queue<Packet> packetQueue; // i think its initialized implicitly
 
 public:
     // initially set backoff to (-1) to show that nothing in queue
-    Host(int id): hostID(id), tmNum(0){
+    Host(int id): packetID(0), hostID(id), tmNum(0), retransmitTime(0), delay(0){
         backoff[id] = -1;
     }
 
@@ -217,17 +328,28 @@ public:
         T = t;
     }
 
-    void enqueueDataPacket()
+    int getDelay()
     {
-        packetQueue.push(new Packet(randomDestination(hostID, NumHosts), false));
+        return delay;
+    }
+
+    void enqueueDataPacket(double stime)
+    {
+        packetQueue.push(Packet(stime, randomDestination(hostID, NumHosts), false));
         // if nothing ready to transmit, as denoted by a negative backoff value
-        // then need to set a new backoff value for this packet
+        // then need to set a new backoff value for this packet.
+        // in real life I don't think the first packet waits for a backoff,
+        // but the TAs told us to do it this way.
         if (backoff < 0)
             backoff[hostID] = generateRandomBackOff(T, backoff, NumHosts);
     }
-    void enqueueAckPacket(int dest)
+    void enqueueAckPacket(double stime, int dest, int ackID)
     {
-        packetQueue.push(new Packet(dest, true));
+
+        // In real life I don't think the ack goes in the back of the queue, 
+        // But the TAs told us to do it this way.
+
+        packetQueue.push(Packet(stime, dest, true, ackID));
         // if nothing ready to transmit, as denoted by a negative backoff value
         // then need to set a new backoff value for this packet
         if (backoff < 0)
@@ -247,6 +369,120 @@ public:
         }
         return false;
     }
+
+
+    void receiveAck(int AckID)
+    {
+        // if correct ack, can pop packet from start of queue
+        if (AckID == packetID)
+        {
+            packetQueue.pop(); // pop packet from queue
+            packetID++; // new packet to send, so increment packetID
+            tmNum = 0; // need to reset TmNum because new packet to transmit.
+            // if no more packets in queue, indicate it by setting backoff id to -1
+            if (packetQueue.empty())
+            {
+                backoff[hostID] = -1;
+            }
+            // eles if still packet to send, set new backoff value
+            else
+            {
+                backoff[hostID] = generateRandomBackOff(T, backoff, NumHosts);
+            }
+
+
+        } 
+        // if AckID does not match PacketID do nothing
+        // should never get out of order ack because can only sent 1 packet at a time
+    }
+
+    void receiveTimeout(double stime, int TO_ID)
+    {
+        // if timeout refers to current packet, need to resend with larger backoff
+        if (TO_ID == packetID)
+        {
+            // if haven't reached maximum transmissions yet, need to retransmit it by resetting backoff value
+            // tmNum refers to current transmission.  On transmission 3, there have been 2 retransmissions
+            // if MaxRTM = 3, then should be able to send another one.
+            // if MaxRTM = 3 and tmNum = 4, then there have already been 3 retransmissions and need to abort
+            if (tmNum <= maxRTM)
+            {
+                // need to reset packet queue time because should not double count delay when waiting for ack
+                // actually, i don't want to make it a queue of pointers so i'll do this hack instead
+                retransmitTime = stime;
+
+                // need to increase mack backoff by a multiple of (tmNum + 1),
+                // since tmNum in incremented when departure event created, but need to use that as a multiplyer here
+                backoff[hostID] = generateRandomBackOff(T * (tmNum + 1), backoff, NumHosts);
+            }
+            // else need to drop packet.  Do this by pretending to ack it
+            else
+            {
+                droppedPackets++;
+                receiveAck(packetID);
+
+            }
+
+        }
+
+    }
+
+
+    // performs packet processing and prepares packet for departure
+    // returns a departure event 
+    // not going to do error checking, so assumes that there is at least 1 packet in the queue and that hopeufully backoff == 0
+    // actually, maybe will do error checking
+    Departure* createDeparture(double stime)
+    {
+        // i lied, error checking
+        if (backoff != 0)
+            std::cerr << "Host creating Departure event when backoff != 0" << std::endl;
+        // the other one should cause runtime issues if bug, so won't check for it
+        // no that's stupid
+        if (packetQueue.empty())
+            std::cerr << "Host creating Departure event when queue empty" << std::endl;
+
+
+        // get packet info
+        Packet p = packetQueue.front();
+
+        Departure* depart; // holds return value
+
+        // if an ack packet, create ack event
+        // since we don't need to wait for ack, can immediatley pretend we got one
+        if (p.isAck)
+        {
+            receiveAck(packetID);
+            depart =  new Departure(stime, hostID, p.destination, p.ackID, true);
+        }
+        // else need to create packet and increment tmNum
+        else
+        {
+            tmNum ++;
+            depart = new Departure(stime, hostID, p.destination, hostID, false);
+
+        }
+
+        // calculate delay
+        // if this is a retransmission (tmNum > 1), then need to use retransmitTime as a base
+        if (tmNum > 1)
+        {
+            delay += (depart->getEventTime() - retransmitTime);
+        }
+        // else use packet time as a base
+        else
+        {
+            delay += (depart->getEventTime() - p.queueTime);
+        }
+
+        return depart;
+
+    }
+
+    Timeout* createTimeout(double stime)
+    {
+        return new Timeout(stime, hostID, packetID);
+    }
     
 };
 
@@ -264,17 +500,8 @@ int	main(int argc, char const *argv[])
     double mu = 1;          // describes shape of distribution of PktSize (r)
     int N = 10;             // number of hosts in network.
     int T = 400;            // maximum backoff value in number sync cycles. Should be larger than N I suppose.
-    double timeout = 0.005; // for project, will take values of 5, 10, or 15 msec. 
+    double TO = 0.005; // for project, will take values of 5, 10, or 15 msec. 
     int eventsSimulated = 100000; // the bound of for loop
-
-//  these should be constant for our project, but I'll define them here
-    double maxRTM = 3;              // maximum number of retransmissions
-    int maxPktSize = 1544;          // maximum size of a packet in bytes
-    int ackPktSize = 64;            // acknowledgement packet size in bytes
-    double channelCapacity = 11000000.0;    // 11 Mbps (bits)
-    double SIFS = 0.00005;                  // 0.05 msec, delay before ack
-    double DIFS = 0.0001;                   // 0.1 msec, delay before send
-    double SYNC = 0.00001;                  // 0.01 msec
 
 //  these are variables used throught the program
     double time = 0;        // time simulated since start of simulation in seconds
@@ -297,7 +524,7 @@ int	main(int argc, char const *argv[])
                      "-m: mu(" << mu << "), shape of packet size distribution\n"
                      "-N: N(" << N << "), number of hosts on LAN\n"
                      "-T: T(" << T << "), maximum backoff time in sync cycles\n"
-                     "-t: timeout(" << timeout << "), given in msec\n" 
+                     "-t: timeout(" << TO << "), given in msec\n" 
                      "-s: eventsSimulated(" << eventsSimulated << "), controls length of simulation\n"<< std::endl;
 
         return 0;
@@ -345,12 +572,12 @@ int	main(int argc, char const *argv[])
             }
         else if (std::string("-t") == argv[i])
             try{
-                timeout = std::stod(argv[i+1]);
+                TO = std::stod(argv[i+1]);
 
             }
             catch(std::exception e)
             {
-                std::cerr << "invalid input for -t, using default value " << timeout << std::endl;
+                std::cerr << "invalid input for -t, using default value " << TO << std::endl;
             }
         else if (std::string("-s") == argv[i])
             try{
@@ -372,7 +599,7 @@ int	main(int argc, char const *argv[])
                      "-m: mu(" << mu << "), shape of packet size distribution\n"
                      "-N: N(" << N << "), number of hosts on LAN\n"
                      "-T: T(" << T << "), maximum backoff time in sync cycles\n"
-                     "-t: timeout(" << timeout << "), given in msec\n" << std::endl;
+                     "-t: timeout(" << TO << "), given in msec\n" << std::endl;
                      "-s: eventsSimulated(" << eventsSimulated << "), controls length of simulation\n" << std::endl;*/
 
 
@@ -386,8 +613,10 @@ int	main(int argc, char const *argv[])
 
     // initialize static variables of events
     Arrival::setLambda(lambda);
+    Departure::setMu(mu);
     Sync::setSYNC(SYNC);
     Host::initHosts(N, T);
+    Timeout::setTO(TO);
 
 
     // initialize each host and create its initial arrival event
@@ -426,7 +655,7 @@ int	main(int argc, char const *argv[])
                 // now need to put packet in queue of host.
                 // will generate length of packet on demand when create a departure event
                 // but need to indicate that it is not a ack packet
-                hosts[a->getHost()]->enqueueDataPacket();
+                hosts[a->getHost()]->enqueueDataPacket(time);
 
             }
             else // not actually an arrival pointer
@@ -443,7 +672,25 @@ int	main(int argc, char const *argv[])
 
             // check if cast actually worked
             if (d)
-            {
+            {   
+                // keep track of bytes transmitted
+                transmitted += d->getSize();
+
+
+                // if an ack departure, need to notify receiving host
+                if (d->isAck())
+                {
+                    // using an integer for packet IDs
+                    hosts[d->getDestination()]->receiveAck(d->getPacketID());
+
+                }
+                // if a data departure, need to create ack packet in destination queue
+                else
+                {
+                    hosts[d->getDestination()]->enqueueAckPacket(time, d->getSource(), d->getPacketID());
+                }
+                // set channel to free
+                channelBusy = false;
 
 
             }
@@ -471,9 +718,28 @@ int	main(int argc, char const *argv[])
                 // also continue to decrement the rest of the backoffs to help with collision avoidance
                 if (channelBusy == false)
                 {
+                    // possible host that needs to transmit
+                    int hostToProcess = -1;
                     for (int i = 0; i < N; i++)
                     {
-                        hosts[i]->decrementBackoff();
+                        // decrements backoff value, returns true if backoff becomes zero
+                        // need to save host index if it needs to be processed
+                        // since we provide collision detection, there should only ever be one host ready to process
+                        if(hosts[i]->decrementBackoff())
+                        {
+                            hostToProcess = i;
+                        }
+
+                        // if a host was selected to process, need to process it
+                        if (hostToProcess >= 0)
+                        {
+                            // have the host create a departure event
+                            eventList->insert(hosts[hostToProcess]->createDeparture(time));
+                            // create a timeout event tied to the host
+                            eventList->insert(hosts[hostToProcess]->createTimeout(time));
+                            // set channel to busy
+                            channelBusy = true;
+                        }
                     }
                 }
 
@@ -493,6 +759,8 @@ int	main(int argc, char const *argv[])
             // check if actually worked
             if (t)
             {
+                // tell host that timeout event occured
+                hosts[t->getHost()]->receiveTimeout(time, t->getTimeoutID());
 
             }
             else // not actually a timeout pointer
@@ -507,6 +775,17 @@ int	main(int argc, char const *argv[])
 
     }
 
+
+
+    for (int i = 0; i < N; i++)
+    {
+        delay += hosts[N]->getDelay();
+    }
+
+    double throughput = transmitted / time;
+
+    std::cout << "Throughput: " << throughput << "Bps" << std::endl;
+    std::cout << "Average Network Delay: " << delay / throughput << std::endl; // i don't get the dementional analysis on this one
 
 
 
