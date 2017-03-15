@@ -819,8 +819,8 @@ int	main(int argc, char const *argv[])
 
     std::cout << "Throughput: " << transmitted / time << " Bps" << std::endl;
     std::cout << "Average Network Delay: " << delay / transmitted << " s/B" << std::endl; // I changed this to make sense
-    std::cout << "Average Network Delay: " << delay / packets << " s/packet" << std::endl; // I changed this to make sense
-    std::cout << "Average Network Delay (per instructions): " << delay / (transmitted/time) << " s^2/B" << std::endl; // This is what doesn't make sense
+    // std::cout << "Average Network Delay: " << delay / packets << " s/packet" << std::endl; // I changed this to make sense
+    // std::cout << "Average Network Delay (per instructions): " << delay / (transmitted/time) << " s^2/B" << std::endl; // This is what doesn't make sense
 
     std::cout << "Packets Dropped: " << drop << std::endl;
     std::cout << "Packets Sent: " << packets << std::endl;
