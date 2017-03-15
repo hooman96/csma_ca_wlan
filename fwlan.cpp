@@ -516,7 +516,7 @@ int	main(int argc, char const *argv[])
 //  read from command line, but given default values
     double lambda = 0.01;    // dexcribes shape of arrival distribution
     double mu = 1;          // describes shape of distribution of PktSize (r)
-    int N = 10;             // number of hosts in network.
+    int N = 20;             // number of hosts in network.
     int T = 400;            // maximum backoff value in number sync cycles. Should be larger than N I suppose.
     double TO = 0.005; // for project, will take values of 5, 10, or 15 msec. 
     int eventsSimulated = 1000000; // the bound of for loop
@@ -804,8 +804,6 @@ int	main(int argc, char const *argv[])
 
     }
 
-
-
     int drop = 0;
 
     for (int i = 0; i < N; i++)
@@ -816,6 +814,7 @@ int	main(int argc, char const *argv[])
 
     std::cout << "lambda: " << lambda << std::endl;
     std::cout << "T: " << T << std::endl;
+    std::cout << "N: " << N << std::endl;
 
     std::cout << "Throughput: " << transmitted / time << " Bps" << std::endl;
     std::cout << "Average Network Delay: " << delay / transmitted << " s/B" << std::endl; // I changed this to make sense
@@ -835,110 +834,4 @@ int	main(int argc, char const *argv[])
     delete hosts;
     delete eventList;
 
-
-
 }
-
-        
-
-
-/*
-
-
-    Event e = Event(time + pareto(lambda), true);
-    GEL eventList = GEL();
-    eventList.insert(e);
-
-    //cerr << "hello 1" << endl;
-
-    // for 100000 events 
-    // process event
-    // just going by the number given
-
-    for (int i = 0; i < eventsSimulated; i++)
-    {
-        // get closest event and update time
-        e = eventList.removeFirst();
-
-        // sums length by multiplying length by elapsed time
-        // since length = 1 could still be considered empty queue
-        // may want to chech it should be length, not length - 1
-        sumLength += max(0, length - 1) * (e.getEventTime() - time);
-        //cerr << "prev time: " << time  << "   event time: " << e.getEventTime() << endl; 
-
-        // updates time
-        time = e.getEventTime();
-
-        // handles Arrival event
-        if (e.getIsArrival())
-        {
-            //cerr << "is Arrival, i: " << i << endl;
-            // insert new arrival event
-            eventList.insert(Event(time + pareto(lambda), true));
-
-            //cerr << "length: " << length << endl;
-
-            // if server is free, schedule a departure event, and update length
-            if (length == 0)
-            {
-                //cerr << "hello from length = 0" << endl;
-                packet = nedt(mu);
-                //cerr << "packet: " << packet << endl;
-                busy += packet;
-                eventList.insert(Event(time + packet, false));
-                length ++;
-                // this assumes maxbuffer is at least one, 
-                // which is a good assumption because no buffer 
-                // would have max buffer equal to 1
-            }
-            // else if room in buffer
-            // maxbuffer = -1 denotes infinite buffer
-            else if (maxbuffer == -1 || length - 1 < maxbuffer)
-            {
-                length ++;
-                // handles generating of service time when departure event created
-            }
-            else // no room in buffer
-            {
-                dropNum ++;
-            }
-        }
-
-        // handles departure event
-        else 
-        {
-            //cerr << "is departure" << endl;
-            length --;
-
-            // if packet still in queue, create a departure event
-            if (length > 0)
-            {
-                packet = nedt(mu);
-                //cerr << "packet: " << packet << endl;
-
-                busy += packet;
-                eventList.insert(Event(time + packet, false));
-            }
-        }
-
-    }
-
-    std::cout << "lambda: ";
-    std::cout << lambda << endl;
-
-    std::cout << "mu: ";
-    std::cout << mu << endl;
-
-    std::cout << "Buffer Size: ";
-    std::cout << maxbuffer << endl;
-    
-    cout << "Utilization: " << busy / time << endl;
-    cout << "Mean queue length: " << sumLength / time << endl;
-    cout << "Number of packets dropped: " << dropNum << endl << endl << endl;
-
-
-	return 0;
-}*/
-
-
-

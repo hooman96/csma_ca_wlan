@@ -1,0 +1,344 @@
+lambda: 0.01
+T: 20
+N: 20
+Throughput: 324.403 Bps
+Average Network Delay: 9.48658e-07 s/B
+Packets Dropped: 0
+Packets Sent: 4
+------------------------------------------------------
+lambda: 0.01
+T: 40
+N: 20
+Throughput: 124.401 Bps
+Average Network Delay: 1.46901e-06 s/B
+Packets Dropped: 0
+Packets Sent: 4
+------------------------------------------------------
+lambda: 0.01
+T: 80
+N: 20
+Throughput: 655.205 Bps
+Average Network Delay: 1.03593e-06 s/B
+Packets Dropped: 0
+Packets Sent: 4
+------------------------------------------------------
+lambda: 0.01
+T: 160
+N: 20
+Throughput: 180.601 Bps
+Average Network Delay: 2.82251e-06 s/B
+Packets Dropped: 0
+Packets Sent: 4
+------------------------------------------------------
+lambda: 0.01
+T: 320
+N: 20
+Throughput: 562.204 Bps
+Average Network Delay: 2.07532e-06 s/B
+Packets Dropped: 0
+Packets Sent: 4
+------------------------------------------------------
+lambda: 0.01
+T: 400
+N: 20
+Throughput: 476.204 Bps
+Average Network Delay: 2.61811e-06 s/B
+Packets Dropped: 0
+Packets Sent: 4
+------------------------------------------------------
+lambda: 0.05
+T: 20
+N: 20
+Throughput: 1928.3 Bps
+Average Network Delay: 9.58277e-07 s/B
+Packets Dropped: 0
+Packets Sent: 26
+------------------------------------------------------
+lambda: 0.05
+T: 40
+N: 20
+Throughput: 2054.61 Bps
+Average Network Delay: 1.0926e-06 s/B
+Packets Dropped: 0
+Packets Sent: 26
+------------------------------------------------------
+lambda: 0.05
+T: 80
+N: 20
+Throughput: 1296.57 Bps
+Average Network Delay: 1.54396e-06 s/B
+Packets Dropped: 0
+Packets Sent: 26
+------------------------------------------------------
+lambda: 0.05
+T: 160
+N: 20
+Throughput: 3187.57 Bps
+Average Network Delay: 1.40985e-06 s/B
+Packets Dropped: 0
+Packets Sent: 26
+------------------------------------------------------
+lambda: 0.05
+T: 320
+N: 20
+Throughput: 1706.69 Bps
+Average Network Delay: 3.32108e-06 s/B
+Packets Dropped: 0
+Packets Sent: 26
+------------------------------------------------------
+lambda: 0.05
+T: 400
+N: 20
+Throughput: 1821.69 Bps
+Average Network Delay: 3.29477e-06 s/B
+Packets Dropped: 0
+Packets Sent: 26
+------------------------------------------------------
+lambda: 0.1
+T: 20
+N: 20
+Throughput: 2974.27 Bps
+Average Network Delay: 1.00026e-06 s/B
+Packets Dropped: 0
+Packets Sent: 46
+------------------------------------------------------
+lambda: 0.1
+T: 40
+N: 20
+Throughput: 4197.99 Bps
+Average Network Delay: 1.02577e-06 s/B
+Packets Dropped: 0
+Packets Sent: 46
+------------------------------------------------------
+lambda: 0.1
+T: 80
+N: 20
+Throughput: 5602.42 Bps
+Average Network Delay: 1.25811e-06 s/B
+Packets Dropped: 0
+Packets Sent: 46
+------------------------------------------------------
+lambda: 0.1
+T: 160
+N: 20
+Throughput: 3982.27 Bps
+Average Network Delay: 1.83877e-06 s/B
+Packets Dropped: 0
+Packets Sent: 46
+------------------------------------------------------
+lambda: 0.1
+T: 320
+N: 20
+Throughput: 2989.98 Bps
+Average Network Delay: 3.31564e-06 s/B
+Packets Dropped: 0
+Packets Sent: 46
+------------------------------------------------------
+lambda: 0.1
+T: 400
+N: 20
+Throughput: 4996.87 Bps
+Average Network Delay: 2.47607e-06 s/B
+Packets Dropped: 0
+Packets Sent: 48
+------------------------------------------------------
+lambda: 0.3
+T: 20
+N: 20
+Throughput: 11980.9 Bps
+Average Network Delay: 9.52435e-07 s/B
+Packets Dropped: 0
+Packets Sent: 132
+------------------------------------------------------
+lambda: 0.3
+T: 40
+N: 20
+Throughput: 10134.3 Bps
+Average Network Delay: 1.10972e-06 s/B
+Packets Dropped: 0
+Packets Sent: 130
+------------------------------------------------------
+lambda: 0.3
+T: 80
+N: 20
+Throughput: 11760.3 Bps
+Average Network Delay: 1.31026e-06 s/B
+Packets Dropped: 0
+Packets Sent: 132
+------------------------------------------------------
+lambda: 0.3
+T: 160
+N: 20
+Throughput: 14024.6 Bps
+Average Network Delay: 1.69105e-06 s/B
+Packets Dropped: 0
+Packets Sent: 132
+------------------------------------------------------
+lambda: 0.3
+T: 320
+N: 20
+Throughput: 9396.27 Bps
+Average Network Delay: 3.05701e-06 s/B
+Packets Dropped: 0
+Packets Sent: 132
+------------------------------------------------------
+lambda: 0.3
+T: 400
+N: 20
+Throughput: 9222.6 Bps
+Average Network Delay: 3.59085e-06 s/B
+Packets Dropped: 0
+Packets Sent: 130
+------------------------------------------------------
+lambda: 0.6
+T: 20
+N: 20
+Throughput: 25848.1 Bps
+Average Network Delay: 9.40432e-07 s/B
+Packets Dropped: 0
+Packets Sent: 262
+------------------------------------------------------
+lambda: 0.6
+T: 40
+N: 20
+Throughput: 19069.9 Bps
+Average Network Delay: 1.11848e-06 s/B
+Packets Dropped: 0
+Packets Sent: 258
+------------------------------------------------------
+lambda: 0.6
+T: 60
+N: 20
+Throughput: 21546.9 Bps
+Average Network Delay: 1.22821e-06 s/B
+Packets Dropped: 0
+Packets Sent: 258
+------------------------------------------------------
+lambda: 0.6
+T: 80
+N: 20
+Throughput: 19665.9 Bps
+Average Network Delay: 1.39532e-06 s/B
+Packets Dropped: 0
+Packets Sent: 260
+------------------------------------------------------
+lambda: 0.6
+T: 160
+N: 20
+Throughput: 20026.2 Bps
+Average Network Delay: 1.87608e-06 s/B
+Packets Dropped: 0
+Packets Sent: 258
+------------------------------------------------------
+lambda: 0.6
+T: 320
+N: 20
+Throughput: 20723.6 Bps
+Average Network Delay: 2.9644e-06 s/B
+Packets Dropped: 0
+Packets Sent: 260
+------------------------------------------------------
+lambda: 0.6
+T: 400
+N: 20
+Throughput: 22169.4 Bps
+Average Network Delay: 3.19245e-06 s/B
+Packets Dropped: 0
+Packets Sent: 260
+------------------------------------------------------
+lambda: 0.8
+T: 20
+N: 20
+Throughput: 28142.1 Bps
+Average Network Delay: 1.00797e-06 s/B
+Packets Dropped: 0
+Packets Sent: 338
+------------------------------------------------------
+lambda: 0.8
+T: 40
+N: 20
+Throughput: 28994.4 Bps
+Average Network Delay: 1.12063e-06 s/B
+Packets Dropped: 0
+Packets Sent: 340
+------------------------------------------------------
+lambda: 0.8
+T: 80
+N: 20
+Throughput: 30957.9 Bps
+Average Network Delay: 1.32631e-06 s/B
+Packets Dropped: 0
+Packets Sent: 340
+------------------------------------------------------
+lambda: 0.8
+T: 160
+N: 20
+Throughput: 26638.7 Bps
+Average Network Delay: 1.88756e-06 s/B
+Packets Dropped: 0
+Packets Sent: 336
+------------------------------------------------------
+lambda: 0.8
+T: 320
+N: 20
+Throughput: 27409.5 Bps
+Average Network Delay: 2.96282e-06 s/B
+Packets Dropped: 0
+Packets Sent: 344
+------------------------------------------------------
+lambda: 0.8
+T: 400
+N: 20
+Throughput: 27276.6 Bps
+Average Network Delay: 3.37756e-06 s/B
+Packets Dropped: 0
+Packets Sent: 336
+------------------------------------------------------
+lambda: 0.9
+T: 20
+N: 20
+Throughput: 29464.3 Bps
+Average Network Delay: 9.70659e-07 s/B
+Packets Dropped: 0
+Packets Sent: 374
+------------------------------------------------------
+lambda: 0.9
+T: 40
+N: 20
+Throughput: 30951 Bps
+Average Network Delay: 1.10313e-06 s/B
+Packets Dropped: 0
+Packets Sent: 374
+------------------------------------------------------
+lambda: 0.9
+T: 80
+N: 20
+Throughput: 28762 Bps
+Average Network Delay: 1.38112e-06 s/B
+Packets Dropped: 0
+Packets Sent: 378
+------------------------------------------------------
+lambda: 0.9
+T: 160
+N: 20
+Throughput: 29654.2 Bps
+Average Network Delay: 1.80931e-06 s/B
+Packets Dropped: 0
+Packets Sent: 372
+------------------------------------------------------
+lambda: 0.9
+T: 320
+N: 20
+Throughput: 32499.1 Bps
+Average Network Delay: 2.6638e-06 s/B
+Packets Dropped: 0
+Packets Sent: 376
+------------------------------------------------------
+lambda: 0.9
+T: 400
+N: 20
+Throughput: 30616 Bps
+Average Network Delay: 3.2058e-06 s/B
+Packets Dropped: 0
+Packets Sent: 372
+------------------------------------------------------

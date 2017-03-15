@@ -1,45 +1,42 @@
 lambda: 0.01
 T: 20
-Throughput: 15.2001 Bps
-Average Network Delay: 3.37317e-06 s/B
-Average Network Delay: 0.000256361 s/packet
-Average Network Delay (per instructions): 3.37316e-05 s^2/B
+Throughput: 308.701 Bps
+Average Network Delay: 8.26926e-07 s/B
 Packets Dropped: 0
 Packets Sent: 2
 ------------------------------------------------------
 lambda: 0.01
 T: 40
-Throughput: 204.901 Bps
-Average Network Delay: 1.03598e-06 s/B
-Average Network Delay: 0.00106136 s/packet
-Average Network Delay (per instructions): 1.03598e-05 s^2/B
+Throughput: 31.8001 Bps
+Average Network Delay: 3.12177e-06 s/B
 Packets Dropped: 0
 Packets Sent: 2
 ------------------------------------------------------
 lambda: 0.01
-T: 100
-Throughput: 20.2001 Bps
-Average Network Delay: 6.10258e-06 s/B
-Average Network Delay: 0.000616361 s/packet
-Average Network Delay (per instructions): 6.10256e-05 s^2/B
+T: 80
+Throughput: 241.501 Bps
+Average Network Delay: 9.86634e-07 s/B
 Packets Dropped: 0
 Packets Sent: 2
 ------------------------------------------------------
 lambda: 0.01
-T: 200
-Throughput: 18.6001 Bps
-Average Network Delay: 1.57136e-05 s/B
-Average Network Delay: 0.00146136 s/packet
-Average Network Delay (per instructions): 0.000157135 s^2/B
+T: 160
+Throughput: 122.1 Bps
+Average Network Delay: 1.92688e-06 s/B
+Packets Dropped: 0
+Packets Sent: 2
+------------------------------------------------------
+lambda: 0.01
+T: 320
+Throughput: 97.6004 Bps
+Average Network Delay: 4.78762e-06 s/B
 Packets Dropped: 0
 Packets Sent: 2
 ------------------------------------------------------
 lambda: 0.01
 T: 400
-Throughput: 340.901 Bps
-Average Network Delay: 1.81071e-06 s/B
-Average Network Delay: 0.00308636 s/packet
-Average Network Delay (per instructions): 1.81071e-05 s^2/B
+Throughput: 97.1004 Bps
+Average Network Delay: 4.78138e-06 s/B
 Packets Dropped: 0
 Packets Sent: 2
 ------------------------------------------------------
