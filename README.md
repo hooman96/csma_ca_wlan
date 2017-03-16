@@ -47,10 +47,7 @@ There are four types of events and their processing steps:
 Our simulations are runned variety of times with 1,000,000 events as default value. The plots are based on average delay of transmitted packets as function of lambda(arrival rate) as well as an additional plot which is average delay as function of T(maximum backoff values). We run the simulations with variety of T values such as 20, 40, 80, 160, 320, 400 and given lambda values λ = 0.01, 0.05, 0.1, 0.3, 0.6, 0.8, and 0.9 packets/second and host numbers of 10 and 20. 
 The throughput increases as lambda increases which makes sense since more packets are transmitted with higher rate. Average delay though depend on the congestion of the network and number of the hosts. Some of the data points might seem up and down but the reasoning is that number of simulations can affect the smaller lambda values. However, as lambda increases the data points express the simulations more clearly.
 
-![alt tag](https://raw.githubusercontent.com/hooman96/csma_ca_wlan/hooman-dev/graph.png)
-
-
-
+![alt tag](https://github.com/hooman96/csma_ca_wlan.git/hooman-dev/graph.png)
 
   
 ## Authors
